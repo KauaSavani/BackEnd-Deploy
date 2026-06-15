@@ -61,7 +61,7 @@ export async function initializeDatabase() {
    await tempConnection.query(`
     CREATE TABLE IF NOT EXISTS categorias (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        nome VARCHAR(30) NOT NULL,
+        nome_categoria VARCHAR(30) NOT NULL,
         descricao VARCHAR(300) NULL
     );
 `);
