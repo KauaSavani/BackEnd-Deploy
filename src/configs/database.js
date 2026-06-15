@@ -56,7 +56,7 @@ export async function initializeDatabase() {
 
         const dbName = process.env.DB_DATABASE || 'technova_distribuidora';
 
-       await tempConnection.query(`DROP DATABASE IF EXISTS \`${dbName}\`;`);
+       //await tempConnection.query(`DROP DATABASE IF EXISTS \`${dbName}\`;`);
 
         await tempConnection.query(
             `CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`
