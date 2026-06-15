@@ -1,0 +1,36 @@
+{
+  "name": "backend-technova",
+  "version": "1.0.0",
+  "description": "Desenvolvimento da API para o e-commerce da empresa technova distribuidora",
+  "keywords": [
+    "ecommerce",
+    "loja",
+    "pedidos",
+    "produtos",
+    "backend",
+    "api",
+    "objetos"
+  ],
+  "homepage": "https://github.com/JoaoMZM/Technova-distribuidora#readme",
+  "bugs": {
+    "url": "https://github.com/JoaoMZM/Technova-distribuidora/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JoaoMZM/Technova-distribuidora.git"
+  },
+  "license": "ISC",
+  "author": "João Maziero de Mello",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "test": "nodemon ./src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.3"
+  }
+}
