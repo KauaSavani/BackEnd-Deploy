@@ -1,12 +1,12 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
+dotenv.config();
 
-// Singleton para a conexão com o banco de dados
+// Singleton para conexão com o banco
 class Database {
     static #instance = null;
     #pool = null;
-
 
     #createPool() {
         this.#pool = mysql.createPool({
@@ -24,86 +24,128 @@ class Database {
         });
     }
 
-
     static getInstance() {
         if (!Database.#instance) {
             Database.#instance = new Database();
             Database.#instance.#createPool();
         }
+
         return Database.#instance;
     }
-
 
     getPool() {
         return this.#pool;
     }
 }
 
+export const db = Database.getInstance().getPool();
+
 export async function initializeDatabase() {
-    console.log("Inicializando o banco de dados e tabelas...");
+    console.log('Inicializando banco de dados...');
+
     try {
         const tempConnection = await mysql.createConnection({
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
             password: process.env.DB_PASSWORD,
             port: process.env.DB_PORT,
-            ssl: { rejectUnauthorized: false }
+            ssl: {
+                rejectUnauthorized: false
+            }
         });
 
+        const dbName = process.env.DB_DATABASE || 'technova_distribuidora';
 
-        const dbName = process.env.DB_DATABASE || 'deploy-atv';
+       await tempConnection.query(`DROP DATABASE IF EXISTS \`${dbName}\`;`);
 
+        await tempConnection.query(
+            `CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`
+        );
 
-        await tempConnection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\`;`);
-        await tempConnection.query(`USE \`${dbName}\`;`);
+        await tempConnection.query(
+            `USE \`${dbName}\`;`
+        );
 
+        // Categorias
+        await tempConnection.query(`
+            CREATE TABLE IF NOT EXISTS categorias (
+                id_categoria INT NOT NULL AUTO_INCREMENT,
+                nome_categoria VARCHAR(100) NOT NULL,
+                descricao_categoria VARCHAR(255),
+                PRIMARY KEY (id_categoria)
+            );
+        `);
 
-   await tempConnection.query(`
-    CREATE TABLE IF NOT EXISTS categorias (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        nome_categoria VARCHAR(30) NOT NULL,
-        descricao VARCHAR(300) NULL
-    );
-`);
+        // Produtos
+        await tempConnection.query(`
+            CREATE TABLE IF NOT EXISTS produtos (
+                id_produto INT NOT NULL AUTO_INCREMENT,
+                nome_produto VARCHAR(100) NOT NULL,
+                descricao_produto TEXT,
+                preco_produto DECIMAL(10,2) NOT NULL,
+                imagem_produto VARCHAR(255),
+                estoque_produto INT NOT NULL DEFAULT 0,
+                id_categoria INT NOT NULL,
 
-await tempConnection.query(`
-    CREATE TABLE IF NOT EXISTS produtos (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        nome VARCHAR(30) NOT NULL,
-        valor DECIMAL(15,2) NOT NULL,
-        id_categoria INT,
-        FOREIGN KEY (id_categoria) REFERENCES categorias(id)
-    );
-`);
+                PRIMARY KEY (id_produto),
 
-await tempConnection.query(`
-    CREATE TABLE IF NOT EXISTS pedidos (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        dataPedido DATETIME DEFAULT CURRENT_TIMESTAMP,
-        valorTotal DECIMAL(15,2) NOT NULL,
-        status VARCHAR(30) NOT NULL
-    );
-`);
+                CONSTRAINT fk_produtos_categoria
+                FOREIGN KEY (id_categoria)
+                REFERENCES categorias(id_categoria)
+                ON DELETE RESTRICT
+                ON UPDATE CASCADE
+            );
+        `);
 
-await tempConnection.query(`
-    CREATE TABLE IF NOT EXISTS itens_pedidos (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        idPedido INT NOT NULL,
-        idProduto INT NOT NULL,
-        quantidade INT NOT NULL,
-        valorUnitario DECIMAL(15,2) NOT NULL,
+        // Pedidos
+        await tempConnection.query(`
+            CREATE TABLE IF NOT EXISTS pedidos (
+                id_pedido INT NOT NULL AUTO_INCREMENT,
+                data_pedido DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                status_pedido ENUM(
+                    'PENDENTE',
+                    'PAGO',
+                    'ENVIADO',
+                    'ENTREGUE',
+                    'CANCELADO'
+                ) NOT NULL DEFAULT 'PENDENTE',
+                valor_total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
 
-        FOREIGN KEY (idPedido) REFERENCES pedidos(id),
-        FOREIGN KEY (idProduto) REFERENCES produtos(id)
-    );
-`);
+                PRIMARY KEY (id_pedido)
+            );
+        `);
+
+        // Itens do Pedido
+        await tempConnection.query(`
+            CREATE TABLE IF NOT EXISTS itens_pedido (
+                id_item_pedido INT NOT NULL AUTO_INCREMENT,
+                quantidade INT NOT NULL,
+                preco_unitario DECIMAL(10,2) NOT NULL,
+                subtotal DECIMAL(10,2),
+                id_produto INT NOT NULL,
+                id_pedido INT NOT NULL,
+
+                PRIMARY KEY (id_item_pedido),
+
+                CONSTRAINT fk_itens_produto
+                FOREIGN KEY (id_produto)
+                REFERENCES produtos(id_produto)
+                ON DELETE RESTRICT
+                ON UPDATE CASCADE,
+
+                CONSTRAINT fk_itens_pedido
+                FOREIGN KEY (id_pedido)
+                REFERENCES pedidos(id_pedido)
+                ON DELETE CASCADE
+                ON UPDATE CASCADE
+            );
+        `);
 
         await tempConnection.end();
-        console.log("Banco de dados e tabelas verificados/criados com sucesso.");
+
+        console.log('Banco de dados e tabelas criados/verificados com sucesso!');
     } catch (error) {
-        console.error("Erro ao criar o banco ou as tabelas:", error);
+        console.error('Erro ao inicializar banco:', error);
         throw error;
     }
 }
-
-export const db = Database.getInstance().getPool();
